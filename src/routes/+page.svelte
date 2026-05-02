@@ -211,6 +211,11 @@
 			<strong>Outflows</strong>
 			<small>Salaries, fuel, maintenance, and payouts</small>
 		</a>
+		<a class="stat-card" href="/combined-ledger">
+			<span>Combined Ledger</span>
+			<strong>Income + Expense</strong>
+			<small>Latest 200 entries with master balance snapshots</small>
+		</a>
 		<a class="stat-card" href="/masters">
 			<span>Masters</span>
 			<strong>Lookups</strong>

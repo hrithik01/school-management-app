@@ -9,6 +9,7 @@
 		{ href: '/students', label: 'Students' },
 		{ href: '/income', label: 'Income' },
 		{ href: '/expenses', label: 'Expenses' },
+		{ href: '/combined-ledger', label: 'Combined Ledger' },
 		{ href: '/masters', label: 'Masters' }
 	];
 

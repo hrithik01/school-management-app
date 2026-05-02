@@ -20,12 +20,13 @@
 	};
 
 	const getLatestEntryDate = (entries) => entries?.[0]?.date || toDateInput(new Date());
+	const getLatestEntryReceiptNumber = (entries) => String(entries?.[0]?.receipt_number || '').trim();
 
-	const emptyForm = (defaultDate = toDateInput(new Date())) => ({
+	const emptyForm = (defaultDate = toDateInput(new Date()), defaultReceiptNumber = '') => ({
 		date: defaultDate,
 		method: 'cash',
 		type: 'salary',
-		receipt_number: '',
+		receipt_number: defaultReceiptNumber,
 		employee_id: '',
 		vehicle_id: '',
 		amount: '',
@@ -66,7 +67,7 @@
 	const openCreate = () => {
 		editingId = null;
 		message = '';
-		form = emptyForm(getLatestEntryDate(expenseList));
+		form = emptyForm(getLatestEntryDate(expenseList), getLatestEntryReceiptNumber(expenseList));
 		drawerOpen = true;
 	};
 
@@ -269,8 +270,8 @@
 		<table>
 			<thead>
 				<tr>
-					<th>Amount</th>
 					<th>Date</th>
+					<th>Amount</th>
 					<th>Type</th>
 					<th>Method</th>
 					<th>Receipt No.</th>
@@ -280,7 +281,7 @@
 					{#if showVehicleColumn}
 						<th>Vehicle</th>
 					{/if}
-					<th>Comments</th>
+					<th class="comments-col">Comments</th>
 					{#if showActionColumn}
 						<th>Action</th>
 					{/if}
@@ -294,18 +295,18 @@
 				{:else}
 					{#each filteredExpenses as entry}
 						<tr>
-							<td>{formatINR(entry.amount)}</td>
 							<td>{entry.date}</td>
+							<td><strong>{formatINR(entry.amount)}</strong></td>
 							<td>{EXPENSE_TYPE_OPTIONS.find((option) => option.value === entry.type)?.label || entry.type}</td>
 							<td>{METHOD_OPTIONS.find((option) => option.value === entry.method)?.label || entry.method}</td>
-							<td>{entry.receipt_number || '-'}</td>
+							<td><strong>{entry.receipt_number || '-'}</strong></td>
 							{#if showEmployeeColumn}
 								<td>{entry.employee_name || '-'}</td>
 							{/if}
 							{#if showVehicleColumn}
 								<td>{formatVehicleLabel(entry)}</td>
 							{/if}
-							<td>{entry.comments || '-'}</td>
+							<td class="comments-col">{entry.comments || '-'}</td>
 							{#if showActionColumn}
 								<td>
 									<div class="action-row">
@@ -397,3 +398,14 @@
 		</div>
 	</form>
 </Drawer>
+
+<style>
+	:global(th.comments-col),
+	:global(td.comments-col) {
+		width: 40%;
+		max-width: 40%;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		word-break: break-word;
+	}
+</style>
