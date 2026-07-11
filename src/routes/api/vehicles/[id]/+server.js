@@ -39,9 +39,15 @@ export const PUT = async ({ params, request }) => {
 export const DELETE = ({ params }) => {
 	const { id } = params;
 	const linkedExpenses = db.prepare('SELECT COUNT(*) AS count FROM expenses WHERE vehicle_id = ?').get(id);
+	const linkedKilometerEntries = db
+		.prepare('SELECT COUNT(*) AS count FROM kilometer_tracker WHERE vehicle_id = ?')
+		.get(id);
 
 	if (linkedExpenses.count > 0) {
 		return json({ error: 'This vehicle is used in expenses and cannot be deleted.' }, { status: 400 });
+	}
+	if (linkedKilometerEntries.count > 0) {
+		return json({ error: 'This vehicle is used in kilometer tracker and cannot be deleted.' }, { status: 400 });
 	}
 
 	db.prepare('DELETE FROM vehicles WHERE id = ?').run(id);

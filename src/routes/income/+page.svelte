@@ -17,6 +17,64 @@
 
 	const getLatestEntryDate = (entries) => entries?.[0]?.date || toDateInput(new Date());
 	const getLatestEntryReceiptNumber = (entries) => String(entries?.[0]?.receipt_number || '').trim();
+	const normalizeFuzzyText = (value = '') =>
+		String(value)
+			.normalize('NFKD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.toLowerCase()
+			.replace(/[^a-z0-9\s]/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
+
+	const levenshteinDistanceWithinLimit = (source, target, limit) => {
+		if (!source || !target) return Math.max(source.length, target.length);
+		if (Math.abs(source.length - target.length) > limit) return limit + 1;
+
+		let previousRow = Array.from({ length: target.length + 1 }, (_, index) => index);
+
+		for (let i = 1; i <= source.length; i += 1) {
+			const currentRow = [i];
+			let rowMin = currentRow[0];
+
+			for (let j = 1; j <= target.length; j += 1) {
+				const insertion = currentRow[j - 1] + 1;
+				const deletion = previousRow[j] + 1;
+				const substitution = previousRow[j - 1] + (source[i - 1] === target[j - 1] ? 0 : 1);
+				const cell = Math.min(insertion, deletion, substitution);
+				currentRow.push(cell);
+				if (cell < rowMin) rowMin = cell;
+			}
+
+			if (rowMin > limit) return limit + 1;
+			previousRow = currentRow;
+		}
+
+		return previousRow[target.length];
+	};
+
+	const fuzzyWordMatch = (queryToken, candidateToken) => {
+		if (!queryToken || !candidateToken) return false;
+		if (candidateToken.includes(queryToken) || queryToken.includes(candidateToken)) return true;
+
+		if (queryToken.length <= 2) return false;
+		const distanceLimit = queryToken.length <= 4 ? 1 : queryToken.length <= 7 ? 2 : 3;
+		return levenshteinDistanceWithinLimit(queryToken, candidateToken, distanceLimit) <= distanceLimit;
+	};
+
+	const fuzzySearchMatch = (searchValue, fields = []) => {
+		const normalizedQuery = normalizeFuzzyText(searchValue);
+		if (!normalizedQuery) return true;
+
+		const candidateText = normalizeFuzzyText(fields.filter(Boolean).join(' '));
+		if (!candidateText) return false;
+		if (candidateText.includes(normalizedQuery)) return true;
+
+		const queryTokens = normalizedQuery.split(' ');
+		const candidateTokens = candidateText.split(' ');
+		return queryTokens.every((queryToken) =>
+			candidateTokens.some((candidateToken) => fuzzyWordMatch(queryToken, candidateToken))
+		);
+	};
 
 	const emptyForm = (defaultDate = toDateInput(new Date()), defaultReceiptNumber = '') => ({
 		date: defaultDate,
@@ -39,6 +97,7 @@
 		method: 'all',
 		type: 'all',
 		student_id: 'all',
+		search: '',
 		range: 'last-3-months',
 		custom_start: toDateInput(new Date(Date.now() - 13 * 24 * 60 * 60 * 1000)),
 		custom_end: toDateInput(new Date())
@@ -134,6 +193,16 @@
 		}
 		if (currentRange.start && entry.date < currentRange.start) return false;
 		if (currentRange.end && entry.date > currentRange.end) return false;
+		if (
+			!fuzzySearchMatch(filters.search, [
+				entry.student_name,
+				entry.parent_name,
+				entry.town_name,
+				entry.comments
+			])
+		) {
+			return false;
+		}
 		return true;
 	});
 	$: filteredTotal = filteredIncome.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
@@ -207,6 +276,14 @@
 				</select>
 			</label>
 		{/if}
+		<label>
+			<span>Search Student / Comment</span>
+			<input
+				type="text"
+				bind:value={filters.search}
+				placeholder="Try: kiara, kira, kara, parent name"
+			/>
+		</label>
 		<label>
 			<span>Date Range</span>
 			<select bind:value={filters.range}>

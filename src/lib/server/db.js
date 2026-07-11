@@ -11,6 +11,8 @@ if (!fs.existsSync(dataDir)) {
 const dbPath = path.join(dataDir, 'school.db');
 const db = new Database(dbPath);
 
+const METHOD_CHECK_CONSTRAINT = "('cash', 'online', 'credit')";
+
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
@@ -28,7 +30,7 @@ const recreateIncomeTableWithoutTypeConstraint = () => {
 		CREATE TABLE income (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			date TEXT NOT NULL,
-			method TEXT NOT NULL CHECK (method IN ('cash', 'online')),
+			method TEXT NOT NULL CHECK (method IN ${METHOD_CHECK_CONSTRAINT}),
 			type TEXT NOT NULL,
 			receipt_number TEXT,
 			student_id INTEGER,
@@ -55,7 +57,7 @@ const recreateExpensesTable = () => {
 		CREATE TABLE expenses (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			date TEXT NOT NULL,
-			method TEXT NOT NULL CHECK (method IN ('cash', 'online')),
+			method TEXT NOT NULL CHECK (method IN ${METHOD_CHECK_CONSTRAINT}),
 			type TEXT NOT NULL,
 			receipt_number TEXT,
 			employee_id INTEGER,
@@ -211,6 +213,36 @@ const migrateTypeConstraintTables = () => {
 	}
 };
 
+const migrateMethodConstraintTables = () => {
+	const incomeSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'income'").get();
+	const expensesSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'expenses'").get();
+
+	const requiresIncomeMigration = incomeSchema?.sql?.includes("method TEXT NOT NULL CHECK (method IN ('cash', 'online'))");
+	const requiresExpensesMigration = expensesSchema?.sql?.includes("method TEXT NOT NULL CHECK (method IN ('cash', 'online'))");
+
+	if (!requiresIncomeMigration && !requiresExpensesMigration) {
+		return;
+	}
+
+	const previousForeignKeys = db.pragma('foreign_keys', { simple: true });
+	db.pragma('foreign_keys = OFF');
+
+	try {
+		const migrate = db.transaction(() => {
+			if (requiresIncomeMigration) {
+				recreateIncomeTableWithoutTypeConstraint();
+			}
+			if (requiresExpensesMigration) {
+				recreateExpensesTableWithoutTypeConstraint();
+			}
+		});
+
+		migrate();
+	} finally {
+		db.pragma(`foreign_keys = ${previousForeignKeys ? 'ON' : 'OFF'}`);
+	}
+};
+
 db.exec(`
 	CREATE TABLE IF NOT EXISTS settings (
 		id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -262,7 +294,7 @@ db.exec(`
 	CREATE TABLE IF NOT EXISTS income (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		date TEXT NOT NULL,
-		method TEXT NOT NULL CHECK (method IN ('cash', 'online')),
+		method TEXT NOT NULL CHECK (method IN ${METHOD_CHECK_CONSTRAINT}),
 		type TEXT NOT NULL,
 		receipt_number TEXT,
 		student_id INTEGER,
@@ -276,7 +308,7 @@ db.exec(`
 	CREATE TABLE IF NOT EXISTS expenses (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		date TEXT NOT NULL,
-		method TEXT NOT NULL CHECK (method IN ('cash', 'online')),
+		method TEXT NOT NULL CHECK (method IN ${METHOD_CHECK_CONSTRAINT}),
 		type TEXT NOT NULL,
 		receipt_number TEXT,
 		employee_id INTEGER,
@@ -287,6 +319,16 @@ db.exec(`
 		updated_at TEXT NOT NULL DEFAULT (datetime('now')),
 		FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE SET NULL,
 		FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE SET NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS kilometer_tracker (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		date TEXT NOT NULL,
+		vehicle_id INTEGER NOT NULL,
+		kilometer_reading REAL NOT NULL,
+		created_at TEXT NOT NULL DEFAULT (datetime('now')),
+		updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+		FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE RESTRICT
 	);
 
 	CREATE TABLE IF NOT EXISTS master_transfers (
@@ -304,10 +346,13 @@ db.exec(`
 	CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
 	CREATE INDEX IF NOT EXISTS idx_expenses_employee_id ON expenses(employee_id);
 	CREATE INDEX IF NOT EXISTS idx_expenses_vehicle_id ON expenses(vehicle_id);
+	CREATE INDEX IF NOT EXISTS idx_kilometer_tracker_date ON kilometer_tracker(date);
+	CREATE INDEX IF NOT EXISTS idx_kilometer_tracker_vehicle_id ON kilometer_tracker(vehicle_id);
 	CREATE INDEX IF NOT EXISTS idx_master_transfers_date ON master_transfers(date);
 `);
 
 migrateTypeConstraintTables();
+migrateMethodConstraintTables();
 migrateMasterTables();
 migrateReceiptNumberColumns();
 migrateExpenseVehicleForeignKey();
@@ -318,6 +363,8 @@ db.exec(`
 	CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
 	CREATE INDEX IF NOT EXISTS idx_expenses_employee_id ON expenses(employee_id);
 	CREATE INDEX IF NOT EXISTS idx_expenses_vehicle_id ON expenses(vehicle_id);
+	CREATE INDEX IF NOT EXISTS idx_kilometer_tracker_date ON kilometer_tracker(date);
+	CREATE INDEX IF NOT EXISTS idx_kilometer_tracker_vehicle_id ON kilometer_tracker(vehicle_id);
 	CREATE INDEX IF NOT EXISTS idx_master_transfers_date ON master_transfers(date);
 `);
 

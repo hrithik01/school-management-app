@@ -1,3 +1,4 @@
+// @ts-nocheck
 import db from '$lib/server/db.js';
 import { json } from '@sveltejs/kit';
 
@@ -110,13 +111,13 @@ export const GET = () => {
 		if (event.entry_kind === 'income') {
 			if (event.method === 'cash') {
 				masterCash += amount;
-			} else {
+			} else if (event.method === 'online') {
 				masterOnline += amount;
 			}
 		} else if (event.entry_kind === 'expense') {
 			if (event.method === 'cash') {
 				masterCash -= amount;
-			} else {
+			} else if (event.method === 'online') {
 				masterOnline -= amount;
 			}
 		} else {

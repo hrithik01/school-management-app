@@ -8,9 +8,10 @@ export const GET = ({ url }) => {
 	let rows = [];
 	if (start && end) {
 		const stmt = db.prepare(
-			`SELECT i.*, s.name AS student_name, s.parent_name, s.class_name
+			`SELECT i.*, s.name AS student_name, s.parent_name, s.class_name, t.name AS town_name
 			 FROM income i
 			 LEFT JOIN students s ON i.student_id = s.id
+			 LEFT JOIN towns t ON s.town_id = t.id
 			 WHERE i.date BETWEEN ? AND ?
 			 ORDER BY i.date DESC, i.created_at DESC`
 		);
@@ -18,9 +19,10 @@ export const GET = ({ url }) => {
 	} else {
 		rows = db
 			.prepare(
-				`SELECT i.*, s.name AS student_name, s.parent_name, s.class_name
+				`SELECT i.*, s.name AS student_name, s.parent_name, s.class_name, t.name AS town_name
 				 FROM income i
 				 LEFT JOIN students s ON i.student_id = s.id
+				 LEFT JOIN towns t ON s.town_id = t.id
 				 ORDER BY i.date DESC, i.created_at DESC`
 			)
 			.all();
@@ -34,7 +36,7 @@ export const POST = async ({ request }) => {
 		return json({ error: 'Date is required.' }, { status: 400 });
 	}
 	if (!METHOD_VALUES.includes(method)) {
-		return json({ error: 'Method must be Cash or Online.' }, { status: 400 });
+		return json({ error: 'Method must be Cash, Online, or Credit.' }, { status: 400 });
 	}
 	if (!INCOME_TYPE_VALUES.includes(type)) {
 		return json({ error: 'A valid income type is required.' }, { status: 400 });

@@ -14,7 +14,8 @@ export const CLASS_OPTIONS = [
 
 export const METHOD_OPTIONS = [
 	{ value: 'cash', label: 'Cash' },
-	{ value: 'online', label: 'Online' }
+	{ value: 'online', label: 'Online' },
+	{ value: 'credit', label: 'Credit' }
 ];
 
 export const METHOD_VALUES = METHOD_OPTIONS.map((option) => option.value);

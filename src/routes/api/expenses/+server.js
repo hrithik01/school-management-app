@@ -41,7 +41,7 @@ export const POST = async ({ request }) => {
 		return json({ error: 'Date is required.' }, { status: 400 });
 	}
 	if (!METHOD_VALUES.includes(method)) {
-		return json({ error: 'Method must be Cash or Online.' }, { status: 400 });
+		return json({ error: 'Method must be Cash, Online, or Credit.' }, { status: 400 });
 	}
 	if (!EXPENSE_TYPE_VALUES.includes(type)) {
 		return json({ error: 'A valid expense type is required.' }, { status: 400 });

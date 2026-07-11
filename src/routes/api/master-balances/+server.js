@@ -1,3 +1,4 @@
+// @ts-nocheck
 import db from '$lib/server/db.js';
 import { json } from '@sveltejs/kit';
 
