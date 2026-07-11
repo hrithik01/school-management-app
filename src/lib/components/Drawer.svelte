@@ -41,8 +41,7 @@
 		position: absolute;
 		inset: 0;
 		border: 0;
-		background: rgba(15, 23, 42, 0.42);
-		backdrop-filter: blur(3px);
+		background: rgba(15, 23, 42, 0.14);
 	}
 
 	.drawer {
