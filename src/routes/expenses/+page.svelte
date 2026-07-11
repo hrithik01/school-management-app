@@ -21,14 +21,25 @@
 
 	const getLatestEntryDate = (entries) => entries?.[0]?.date || toDateInput(new Date());
 	const getLatestEntryReceiptNumber = (entries) => String(entries?.[0]?.receipt_number || '').trim();
+	const getDefaultFuelVehicleId = (vehicleList = []) => {
+		const preferredVehicle = vehicleList.find((vehicle) => {
+			const searchable = `${vehicle?.name || ''} ${vehicle?.vehicle_number || ''}`.toLowerCase();
+			return searchable.includes('yellow') && searchable.includes('cng');
+		});
+		return preferredVehicle ? String(preferredVehicle.id) : '';
+	};
 
-	const emptyForm = (defaultDate = toDateInput(new Date()), defaultReceiptNumber = '') => ({
+	const emptyForm = (
+		defaultDate = toDateInput(new Date()),
+		defaultReceiptNumber = '',
+		defaultVehicleId = ''
+	) => ({
 		date: defaultDate,
 		method: 'cash',
-		type: 'salary',
+		type: 'fuel',
 		receipt_number: defaultReceiptNumber,
 		employee_id: '',
-		vehicle_id: '',
+		vehicle_id: defaultVehicleId,
 		amount: '',
 		comments: ''
 	});
@@ -67,7 +78,11 @@
 	const openCreate = () => {
 		editingId = null;
 		message = '';
-		form = emptyForm(getLatestEntryDate(expenseList), getLatestEntryReceiptNumber(expenseList));
+		form = emptyForm(
+			getLatestEntryDate(expenseList),
+			getLatestEntryReceiptNumber(expenseList),
+			getDefaultFuelVehicleId(vehicles)
+		);
 		drawerOpen = true;
 	};
 
