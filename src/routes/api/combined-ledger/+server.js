@@ -130,16 +130,14 @@ export const GET = () => {
 			}
 		}
 
-		if (event.entry_kind !== 'transfer') {
-			balanceByEntryKey.set(`${event.entry_kind}:${event.id}`, {
-				master_cash_balance: masterCash,
-				master_account_balance: masterOnline
-			});
-		}
+		balanceByEntryKey.set(`${event.entry_kind}:${event.id}`, {
+			master_cash_balance: masterCash,
+			master_account_balance: masterOnline
+		});
 	}
 
 	const combinedRows = events
-		.filter((event) => event.entry_kind !== 'transfer')
+		.slice()
 		.sort((a, b) => compareEventsAsc(b, a))
 		.slice(0, 200)
 		.map((event) => {
@@ -152,7 +150,8 @@ export const GET = () => {
 
 			return {
 				...event,
-				amount_signed: event.entry_kind === 'income' ? Number(event.amount || 0) : -Number(event.amount || 0),
+				amount_signed:
+					event.entry_kind === 'expense' ? -Number(event.amount || 0) : Number(event.amount || 0),
 				...balances
 			};
 		});

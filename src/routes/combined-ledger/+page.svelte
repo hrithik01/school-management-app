@@ -4,6 +4,10 @@
 	import { EXPENSE_TYPE_OPTIONS, INCOME_TYPE_OPTIONS, METHOD_OPTIONS, formatINR } from '$lib/constants.js';
 
 	const typeLabel = (kind, type) => {
+		if (kind === 'transfer') {
+			return 'Master Transfer';
+		}
+
 		if (kind === 'income') {
 			return INCOME_TYPE_OPTIONS.find((option) => option.value === type)?.label || type;
 		}
@@ -13,7 +17,22 @@
 
 	const methodLabel = (method) => METHOD_OPTIONS.find((option) => option.value === method)?.label || method;
 
+	const entryMethodLabel = (entry) =>
+		entry.entry_kind === 'transfer'
+			? `${methodLabel(entry.from_method)} → ${methodLabel(entry.to_method)}`
+			: methodLabel(entry.method);
+
+	const entryKindLabel = (kind) => {
+		if (kind === 'income') return 'Income';
+		if (kind === 'transfer') return 'Transfer';
+		return 'Expense';
+	};
+
 	const counterpartyLabel = (entry) => {
+		if (entry.entry_kind === 'transfer') {
+			return '-';
+		}
+
 		if (entry.entry_kind === 'income') {
 			const name = String(entry.student_name || '').trim();
 			const parent = String(entry.parent_name || '').trim();
@@ -75,7 +94,7 @@
 <section class="hero-panel">
 	<div>
 		<p class="eyebrow">Combined Ledger</p>
-		<h2>Last 200 income and expense entries together</h2>
+		<h2>Last 200 income, expense and master transfer entries together</h2>
 		<p class="muted">Each row includes the master cash/account balance snapshot as of that exact entry time.</p>
 	</div>
 </section>
@@ -99,7 +118,7 @@
 	<div class="section-header">
 		<div>
 			<h3>Combined Entries (Latest 200)</h3>
-			<p class="muted">Income appears as positive values and expenses appear as negative values.</p>
+			<p class="muted">Income appears as positive values, expenses as negative values, and master transfers (cash ↔ online) as neutral values.</p>
 		</div>
 	</div>
 
@@ -149,19 +168,23 @@
 							<tr>
 								<td>{entry.date}</td>
 								<td>
-									<span class={entry.entry_kind === 'income' ? 'entry-pill income' : 'entry-pill expense'}>
-										{entry.entry_kind === 'income' ? 'Income' : 'Expense'}
+									<span class="entry-pill {entry.entry_kind}">
+										{entryKindLabel(entry.entry_kind)}
 									</span>
 								</td>
 								{#if showTypeColumn}
 									<td>{typeLabel(entry.entry_kind, entry.type)}</td>
 								{/if}
-								<td>{methodLabel(entry.method)}</td>
+								<td>{entryMethodLabel(entry)}</td>
 								{#if showPartyColumn}
 									<td>{counterpartyLabel(entry)}</td>
 								{/if}
 								<td>{entry.receipt_number || '-'}</td>
-								<td class:positive={entry.amount_signed > 0} class:negative={entry.amount_signed < 0}>
+								<td
+									class:positive={entry.entry_kind === 'income'}
+									class:negative={entry.entry_kind === 'expense'}
+									class:neutral={entry.entry_kind === 'transfer'}
+								>
 									{formatINR(entry.amount_signed)}
 								</td>
 								<td><strong>{formatINR(entry.master_cash_balance)}</strong></td>
@@ -196,6 +219,16 @@
 		color: #8a3d25;
 	}
 
+	.entry-pill.transfer {
+		background: rgba(52, 92, 160, 0.12);
+		color: #2c4f8a;
+	}
+
+	:global(body[data-theme='dark']) .entry-pill.transfer {
+		background: rgba(130, 170, 240, 0.18);
+		color: #b5cdf7;
+	}
+
 	:global(body[data-theme='dark']) .entry-pill.income {
 		background: rgba(121, 214, 167, 0.16);
 		color: #8fe8bb;
@@ -214,6 +247,15 @@
 	.negative {
 		color: #b4412e;
 		font-weight: 600;
+	}
+
+	.neutral {
+		color: #2c4f8a;
+		font-weight: 600;
+	}
+
+	:global(body[data-theme='dark']) .neutral {
+		color: #b5cdf7;
 	}
 
 	:global(body[data-theme='dark']) .positive {

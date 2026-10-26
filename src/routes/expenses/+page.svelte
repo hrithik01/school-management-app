@@ -63,6 +63,7 @@
 	let showEmployeeColumn = false;
 	let showVehicleColumn = false;
 	let showActionColumn = false;
+	let showCalculatedTotal = false;
 
 	const loadData = async () => {
 		const [employeesRes, vehiclesRes, expensesRes] = await Promise.all([
@@ -205,6 +206,14 @@
 		<div>
 			<h3>Expense Register</h3>
 			<p class="muted">Default view shows amount, date, type, method, receipt number, and comments.</p>
+		</div>
+		<div class="action-row">
+			{#if showCalculatedTotal}
+				<span class="pill">Total of {filteredExpenses.length} entries: <strong>{formatINR(filteredTotal)}</strong></span>
+			{/if}
+			<button class="secondary-button" on:click={() => (showCalculatedTotal = !showCalculatedTotal)}>
+				{showCalculatedTotal ? 'Hide Total' : 'Calculate Total'}
+			</button>
 		</div>
 	</div>
 

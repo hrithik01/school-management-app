@@ -105,6 +105,7 @@
 	let showStudentColumn = false;
 	let showClassColumn = false;
 	let showActionColumn = false;
+	let showCalculatedTotal = false;
 
 	const loadData = async () => {
 		const [studentsRes, incomeRes] = await Promise.all([fetch('/api/students'), fetch('/api/income')]);
@@ -243,6 +244,14 @@
 		<div>
 			<h3>Income Register</h3>
 			<p class="muted">Default view shows amount, date, type, method, receipt number, and comments.</p>
+		</div>
+		<div class="action-row">
+			{#if showCalculatedTotal}
+				<span class="pill">Total of {filteredIncome.length} entries: <strong>{formatINR(filteredTotal)}</strong></span>
+			{/if}
+			<button class="secondary-button" on:click={() => (showCalculatedTotal = !showCalculatedTotal)}>
+				{showCalculatedTotal ? 'Hide Total' : 'Calculate Total'}
+			</button>
 		</div>
 	</div>
 
